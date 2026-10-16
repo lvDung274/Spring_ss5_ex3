@@ -16,12 +16,11 @@ import java.util.List;
 public class CourseController {
     private final CourseService courseService;
 
-    // Constructor Injection
     public CourseController(CourseService courseService) {
         this.courseService = courseService;
     }
 
-    // Sử dụng List<CourseResponse> thay vì List<Course>
+    // Đã chuyển đổi kiểu trả về từ List<Course> sang List<CourseResponse>
     @GetMapping
     public ResponseEntity<ApiResponse<List<CourseResponse>>> getAllCourses() {
         try {
@@ -32,17 +31,13 @@ public class CourseController {
         }
     }
 
-    // Sử dụng CourseResponse thay vì Course
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CourseResponse>> getCourseById(@PathVariable Long id) {
         try {
             CourseResponse course = courseService.getCourseResponseById(id);
-            return ResponseEntity.ok(
-                    new ApiResponse<>(true, "Đã truy xuất thành công", course)
-            );
+            return ResponseEntity.ok(new ApiResponse<>(true, "Đã truy xuất thành công", course));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404)
-                    .body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
         }
     }
 

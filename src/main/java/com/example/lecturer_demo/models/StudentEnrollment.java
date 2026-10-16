@@ -3,6 +3,8 @@ package com.example.lecturer_demo.models;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Setter
@@ -15,12 +17,19 @@ public class StudentEnrollment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "student_id")
     private Student student;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "course_id")
     private Course course;
+
+    @Column(name = "enrolled_at")
+    private LocalDateTime enrolledAt;
+
+    @PrePersist
+    public void oncreate() {
+        this.enrolledAt = LocalDateTime.now();
+    }
 }

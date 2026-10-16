@@ -1,8 +1,10 @@
 package com.example.lecturer_demo.services;
 
+import com.example.lecturer_demo.dto.CourseEnrollmentResponse;
 import com.example.lecturer_demo.dto.EnrollCourseRequest;
 import com.example.lecturer_demo.dto.EnrollmentDetail;
 import com.example.lecturer_demo.models.Course;
+import com.example.lecturer_demo.models.CourseStatus;
 import com.example.lecturer_demo.models.Student;
 import com.example.lecturer_demo.models.StudentEnrollment;
 import com.example.lecturer_demo.repositories.CourseRepository;
@@ -18,7 +20,8 @@ public class EnrollmentService {
     private final EnrollmentRepository enrollmentRepository;
     private final CourseRepository courseRepository;
     private final InstructorRepository instructorRepository;
-    private final StudentRepository studentRepository; // Khai báo StudentRepository
+    private final StudentRepository studentRepository;
+
     // Constructor Injection
     public EnrollmentService(EnrollmentRepository enrollmentRepository,
                              CourseRepository courseRepository,
@@ -29,6 +32,7 @@ public class EnrollmentService {
         this.instructorRepository = instructorRepository;
         this.studentRepository = studentRepository;
     }
+
     public List<StudentEnrollment> getAllEnrollments() {
         return enrollmentRepository.findAll();
     }
@@ -38,45 +42,51 @@ public class EnrollmentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đăng ký"));
     }
 
-    public StudentEnrollment createEnrollment(StudentEnrollment enrollment) {
-        return enrollmentRepository.save(enrollment);
-    }
-
-    public StudentEnrollment updateEnrollment(long id, StudentEnrollment enrollmentDetails) {
-        StudentEnrollment existing = enrollmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đăng ký"));
-        existing.setStudent(enrollmentDetails.getStudent());
-        existing.setCourse(enrollmentDetails.getCourse());
-        return enrollmentRepository.save(existing);
-    }
-
     public void deleteEnrollmentById(long id) {
         enrollmentRepository.deleteById(id);
     }
 
-    public EnrollmentDetail enrollCourse(EnrollCourseRequest request) {
-        // 1. Tìm Course theo ID
-        Course course = courseRepository.findById(request.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Khóa học không tìm thấy"));
-
-        // 2. Kiểm tra trạng thái khóa học
-        if (!"ACTIVE".equalsIgnoreCase(course.getStatus().name())) {
-            throw new RuntimeException("Khóa học hiện không mở đăng ký");
+    public CourseEnrollmentResponse enrollCourse(Long courseId, Long studentId) {
+        boolean isCourseActive = courseRepository.existsByIdAndStatus(courseId, CourseStatus.ACTIVE);
+        if (!isCourseActive) {
+            throw new RuntimeException("Khóa học không tồn tại hoặc không ở trạng thái ACTIVE!");
         }
 
-        // 3. Tìm Student theo ID từ request (thay vì lấy tên trực tiếp)
-        Student student = studentRepository.findById(request.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy sinh viên"));
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sinh viên với ID: " + studentId));
 
-        // 4. Khởi tạo StudentEnrollment mới bằng Builder theo cấu trúc N-N
-        StudentEnrollment newEnrollment = StudentEnrollment.builder()
-                .student(student)
-                .course(course)
-                .build();
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + courseId));
 
-        enrollmentRepository.save(newEnrollment);
+        boolean isAlreadyEnrolled = enrollmentRepository.existsByCourseIdAndStudentId(courseId, studentId);
+        if (isAlreadyEnrolled) {
+            throw new RuntimeException("Sinh viên này đã đăng ký khóa học này rồi!");
+        }
 
-        // 5. Trả về thông tin chi tiết (lấy tên sinh viên thông qua đối tượng student)
-        return new EnrollmentDetail(newEnrollment.getId(), student.getName(), course);
+        StudentEnrollment newEnrollment = new StudentEnrollment();
+        newEnrollment.setStudent(student);
+        newEnrollment.setCourse(course);
+
+        StudentEnrollment savedEnrollment = enrollmentRepository.save(newEnrollment);
+
+        return new CourseEnrollmentResponse(
+                savedEnrollment.getStudent().getId(),
+                savedEnrollment.getCourse().getId(),
+                savedEnrollment.getEnrolledAt()
+        );
+    }
+
+    public void removeStudentFromCourse(Long courseId, Long studentId) {
+        StudentEnrollment enrollment = enrollmentRepository.findByCourseIdAndStudentId(courseId, studentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đăng ký của sinh viên trong khóa học này!"));
+
+        enrollmentRepository.delete(enrollment);
+    }
+
+    public List<Student> searchStudentsInCourse(Long courseId, String search) {
+        if (!courseRepository.existsById(courseId)) {
+            throw new RuntimeException("Không tìm thấy khóa học với ID: " + courseId);
+        }
+        return enrollmentRepository.searchStudentsByCourseIdAndName(courseId, search);
     }
 }
