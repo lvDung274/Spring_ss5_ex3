@@ -1,15 +1,13 @@
 package com.example.lecturer_demo.controllers;
 
-import com.example.lecturer_demo.dto.ApiResponse;
-import com.example.lecturer_demo.dto.CourseCreateRequest;
-import com.example.lecturer_demo.dto.CourseResponse;
-import com.example.lecturer_demo.dto.CourseUpdateRequest;
+import com.example.lecturer_demo.dto.*;
 import com.example.lecturer_demo.services.CourseService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.lecturer_demo.dto.PageResponse;
 
 import java.util.List;
 
@@ -22,28 +20,19 @@ public class CourseController {
         this.courseService = courseService;
     }
 
-    // Đã chuyển đổi kiểu trả về từ List<Course> sang List<CourseResponse>
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CourseResponse>>> getAllCourses() {
-        try {
-            List<CourseResponse> courses = courseService.getAllCourses();
-            return ResponseEntity.ok(new ApiResponse<>(true, "Đã truy xuất thành công", courses));
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
-        }
-    }
-    @GetMapping("/pageable")
-    public ResponseEntity<ApiResponse<Page<CourseResponse>>> getCourses(
+    public ResponseEntity<ApiResponse<PageResponse<CourseResponse>>> getCourses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
             @RequestParam(defaultValue = "DESC") Sort.Direction direction) {
-        Page<CourseResponse> pagedCourses = courseService.getPagedCourses(page, size, sortBy, direction);
 
-        ApiResponse<Page<CourseResponse>> apiResponse = new ApiResponse<>();
+        PageResponse<CourseResponse> pagedResult = courseService.getPagedCourses(page, size, sortBy, direction);
+
+        ApiResponse<PageResponse<CourseResponse>> apiResponse = new ApiResponse<>();
         apiResponse.setSuccess(true);
-        apiResponse.setMessage("Lấy danh sách khóa học thành công");
-        apiResponse.setData(pagedCourses);
+        apiResponse.setMessage("Lấy danh sách khóa học phân trang thành công");
+        apiResponse.setData(pagedResult);
 
         return ResponseEntity.ok(apiResponse);
     }

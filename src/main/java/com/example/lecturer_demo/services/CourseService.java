@@ -1,9 +1,6 @@
 package com.example.lecturer_demo.services;
 
-import com.example.lecturer_demo.dto.CourseInstructorResponse;
-import com.example.lecturer_demo.dto.CourseResponse;
-import com.example.lecturer_demo.dto.CourseCreateRequest;
-import com.example.lecturer_demo.dto.CourseUpdateRequest;
+import com.example.lecturer_demo.dto.*;
 import com.example.lecturer_demo.models.Course;
 import com.example.lecturer_demo.models.CourseStatus;
 import com.example.lecturer_demo.models.Instructor;
@@ -88,7 +85,7 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
         courseRepository.delete(existing);
     }
-    public Page<CourseResponse> getPagedCourses(int page, int size, String sortBy, Sort.Direction direction) {
+    public PageResponse<CourseResponse> getPagedCourses(int page, int size, String sortBy, Sort.Direction direction) {
         if (page < 0) {
             page = 0;
         }
@@ -97,7 +94,7 @@ public class CourseService {
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<Course> coursePage = courseRepository.findAll(pageable);
-        return coursePage.map(course -> {
+        Page<CourseResponse> courseResponsePage = coursePage.map(course -> {
             CourseInstructorResponse instructorResponse = null;
             if (course.getInstructor() != null) {
                 instructorResponse = new CourseInstructorResponse(
@@ -105,6 +102,7 @@ public class CourseService {
                         course.getInstructor().getName()
                 );
             }
+
             return new CourseResponse(
                     course.getId(),
                     course.getTitle(),
@@ -112,5 +110,13 @@ public class CourseService {
                     instructorResponse
             );
         });
+        return PageResponse.<CourseResponse>builder()
+                .items(courseResponsePage.getContent())
+                .page(courseResponsePage.getNumber())
+                .size(courseResponsePage.getSize())
+                .totalItems(courseResponsePage.getTotalElements())
+                .totalPages(courseResponsePage.getTotalPages())
+                .isLast(courseResponsePage.isLast())
+                .build();
     }
-}
+    }
