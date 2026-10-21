@@ -1,6 +1,7 @@
 package com.example.lecturer_demo.controllers;
 
 import com.example.lecturer_demo.dto.*;
+import com.example.lecturer_demo.models.CourseStatus;
 import com.example.lecturer_demo.services.CourseService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -25,13 +26,13 @@ public class CourseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sortBy,
-            @RequestParam(defaultValue = "DESC") Sort.Direction direction) {
-
-        PageResponse<CourseResponse> pagedResult = courseService.getPagedCourses(page, size, sortBy, direction);
+            @RequestParam(defaultValue = "DESC") Sort.Direction direction,
+            @RequestParam(defaultValue = "ACTIVE") CourseStatus status) {
+        PageResponse<CourseResponse> pagedResult = courseService.getPagedCoursesByStatus(page, size, sortBy, direction, status);
 
         ApiResponse<PageResponse<CourseResponse>> apiResponse = new ApiResponse<>();
         apiResponse.setSuccess(true);
-        apiResponse.setMessage("Lấy danh sách khóa học phân trang thành công");
+        apiResponse.setMessage("Lấy danh sách khóa học theo trạng thái thành công");
         apiResponse.setData(pagedResult);
 
         return ResponseEntity.ok(apiResponse);

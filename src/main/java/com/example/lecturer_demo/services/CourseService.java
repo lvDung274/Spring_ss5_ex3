@@ -24,7 +24,6 @@ public class CourseService {
         this.instructorRepository = instructorRepository;
     }
 
-    // Thực hiện mapping từ Entity sang DTO tại Service bằng Stream API
     public List<CourseResponse> getAllCourses() {
         return courseRepository.findAll().stream()
                 .map(course -> new CourseResponse(
@@ -85,15 +84,19 @@ public class CourseService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
         courseRepository.delete(existing);
     }
-    public PageResponse<CourseResponse> getPagedCourses(int page, int size, String sortBy, Sort.Direction direction) {
+    public PageResponse<CourseResponse> getPagedCoursesByStatus(
+            int page, int size, String sortBy, Sort.Direction direction, CourseStatus status) {
         if (page < 0) {
             page = 0;
         }
+
         if (sortBy == null || sortBy.trim().isEmpty()) {
             sortBy = "id";
         }
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-        Page<Course> coursePage = courseRepository.findAll(pageable);
+        Page<Course> coursePage = courseRepository.findAllByStatus(status, pageable);
+
         Page<CourseResponse> courseResponsePage = coursePage.map(course -> {
             CourseInstructorResponse instructorResponse = null;
             if (course.getInstructor() != null) {
@@ -110,6 +113,7 @@ public class CourseService {
                     instructorResponse
             );
         });
+
         return PageResponse.<CourseResponse>builder()
                 .items(courseResponsePage.getContent())
                 .page(courseResponsePage.getNumber())
@@ -119,4 +123,4 @@ public class CourseService {
                 .isLast(courseResponsePage.isLast())
                 .build();
     }
-    }
+}
